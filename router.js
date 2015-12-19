@@ -17,5 +17,5 @@ function userRoute(request, response) {
 	}
 }
 
-module.exports.home = homeRoute;
-module.exports.user = userRoute;
+module.exports.homeRoute = homeRoute;
+module.exports.userRoute = userRoute;
