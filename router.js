@@ -1,21 +1,70 @@
-function homeRoute(request,response) {
-	if(request.url === "/") {
-		response.writeHead(200, {'Content-Type': 'text/plain'});
-		response.write("Header\n");
-		response.write("Search\n");
-		response.write("Footer\n");
-	}
-}
+var Profile = require("./profile.js");
+var renderer = require('./renderer.js');
+var querystring = require('querystring');
 
-function userRoute(request, response) {
-	var username = request.url.replace("/", "");
-	if (username.length > 0) {
-		response.writeHead(200, {'Content-Type': 'text/plain'});
-		response.write("Header\n");
-		response.write(username + "\n");
-		response.write("Footer\n");
-	}
-}
+var commonHeaders = {'Content-Type': 'text/html'}
 
-module.exports.homeRoute = homeRoute;
-module.exports.userRoute = userRoute;
+//Handle http route GET / POST / i.e. Home 
+function home(request, response) {
+   //if url == "/" && GET
+  if(request.url === "/") {
+    if(request.method.toLowerCase() === "get") {
+      //show searchfield
+      response.writeHead(200, commonHeaders);
+      renderer.view("header", {}, response);
+      renderer.view("search", {}, response);
+      renderer.view("footer", {}, response);
+      response.end();
+    } else {
+     //if url == "/" && POST
+      //get the post data from body
+        request.on('data', function (postBody) {
+          //console.log(postBody.toString());
+          var query = querystring.parse(postBody.toString());
+          response.writeHead(303, {"Location": "/" + query.username});
+          response.end();
+        });
+      //extrac user name and redirect
+      //redirect to the usernam
+      
+      }
+   }
+}
+//Handle HTTP route for GET/username i.e. /chalkers
+function user(request, response) {
+  //if url == "/..."
+  var username = request.url.replace("/", "");
+
+  if(username.length > 0) {
+    response.writeHead(200, commonHeaders);
+    renderer.view("header", {}, response);
+    
+    var studentProfile = new Profile(username);
+    
+    studentProfile.on("end", function(profileJSON) {
+      //show profile
+      var values = {
+        avatarURL: profileJSON.gravatar_url,
+        username: profileJSON.profile_name,
+        badges: profileJSON.badges.length,
+        javascriptPoints: profileJSON.points.JavaScript
+      }      
+      //simple response
+     // response.write(values.username + " has " + values.badges + " badges\n");
+      renderer.view("profile", values, response);
+      renderer.view("footer", {}, response);
+      response.end();
+    });
+    
+    studentProfile.on("error", function(error) {
+      //show error
+      renderer.view("error", {errorMessage: error.message}, response);
+      renderer.view("search", {}, response);
+      renderer.view("footer", {}, response);
+      response.end();
+    });
+    
+  }
+}
+  module.exports.home = home;
+  module.exports.user = user;
